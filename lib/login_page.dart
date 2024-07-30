@@ -3,8 +3,7 @@ import 'package:chatappfirbase/button.dart';
 import 'package:chatappfirbase/text_field.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+
 
 const Color darkBlue = Color(0xFF182E4C);
 const Color btnColor = Color(0xFF00B4D8);
@@ -21,27 +20,14 @@ class _LoginPageState extends State<LoginPage> {
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
 
-  void saveUserToken(String userId) async {
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'fcmToken': fcmToken,
-    });
-  }
-
   void signIn() async {
     final authService = Provider.of<AuthService>(context, listen: false);
 
     try {
-      final userCredential = await authService.signInWithEmailandPassword(
+      await authService.signInWithEmailandPassword(
         emailController.text,
         passwordController.text,
       );
-      String userId = userCredential.user!.uid;
-
-      // Save FCM token
-      saveUserToken(userId);
-
-      // Navigate to the chat page or other actions
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -53,7 +39,7 @@ class _LoginPageState extends State<LoginPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: darkBlue,
+      backgroundColor : darkBlue,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Center(
@@ -95,8 +81,7 @@ class _LoginPageState extends State<LoginPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Not a member?',
+                      const Text('Not a member?',
                         style: TextStyle(color: Colors.white),
                       ),
                       const SizedBox(width: 4),
@@ -104,10 +89,7 @@ class _LoginPageState extends State<LoginPage> {
                         onTap: widget.onTap,
                         child: const Text(
                           'Register now!',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold, color: Colors.white),
                         ),
                       ),
                     ],

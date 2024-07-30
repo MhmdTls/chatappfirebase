@@ -3,8 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'text_field.dart';
 import 'button.dart';
-import 'package:firebase_messaging/firebase_messaging.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
 
 const Color darkBlue = Color(0xFF182E4C);
 const Color btnColor = Color(0xFF00B4D8);
@@ -18,16 +16,10 @@ class RegisterPage extends StatefulWidget {
 }
 
 class _RegisterPageState extends State<RegisterPage> {
+  @override
   final emailController = TextEditingController();
   final passwordController = TextEditingController();
   final confirmPasswordController = TextEditingController();
-
-  void saveUserToken(String userId) async {
-    String? fcmToken = await FirebaseMessaging.instance.getToken();
-    await FirebaseFirestore.instance.collection('users').doc(userId).set({
-      'fcmToken': fcmToken,
-    });
-  }
 
   void signUp() async {
     if (passwordController.text != confirmPasswordController.text) {
@@ -39,16 +31,10 @@ class _RegisterPageState extends State<RegisterPage> {
 
     final authService = Provider.of<AuthService>(context, listen: false);
     try {
-      final userCredential = await authService.signUpWithEmailandPassword(
+      await authService.signUpWithEmailandPassword(
         emailController.text,
         passwordController.text,
       );
-      String userId = userCredential.user!.uid;
-
-      // Save FCM token
-      saveUserToken(userId);
-
-      // Navigate to the chat page or other actions
     } catch (e) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text(e.toString())),
@@ -60,7 +46,7 @@ class _RegisterPageState extends State<RegisterPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       resizeToAvoidBottomInset: true,
-      backgroundColor: darkBlue,
+      backgroundColor : darkBlue,
       body: SafeArea(
         child: SingleChildScrollView(
           child: Center(
@@ -79,9 +65,9 @@ class _RegisterPageState extends State<RegisterPage> {
                   const Text(
                     " Let's create an account! ",
                     style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.white,
-                      fontWeight: FontWeight.bold,
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.bold
                     ),
                   ),
                   const SizedBox(height: 25.0),
@@ -108,8 +94,7 @@ class _RegisterPageState extends State<RegisterPage> {
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Text(
-                        'Already a member?',
+                      const Text('Already a member?',
                         style: TextStyle(color: Colors.white),
                       ),
                       const SizedBox(width: 4),
@@ -117,10 +102,7 @@ class _RegisterPageState extends State<RegisterPage> {
                         onTap: widget.onTap,
                         child: const Text(
                           'Login now!',
-                          style: TextStyle(
-                            fontWeight: FontWeight.bold,
-                            color: Colors.white,
-                          ),
+                          style: TextStyle(fontWeight: FontWeight.bold,color: Colors.white),
                         ),
                       ),
                     ],

@@ -28,6 +28,7 @@ class ChatService with ChangeNotifier {
       receiverId: receiverId,
       message: message,
       timestamp: timestamp,
+      isRead: false,
     );
 
     List<String> ids = [currentUserId, receiverId];
@@ -35,6 +36,8 @@ class ChatService with ChangeNotifier {
     String chatRoomId = ids.join("_");
 
     await _firestore.collection('chat_rooms').doc(chatRoomId).collection('messages').add(newMessage.toMap());
+
+
   }
 
   Stream<QuerySnapshot> getMessages(String userId, String otherUserId) {
@@ -70,9 +73,10 @@ class ChatService with ChangeNotifier {
           senderId: currentUserId,
           senderEmail: currentUserEmail,
           receiverId: receiverId,
-          message: '', // Assuming the message is empty when sending an image
+          message: '',
           imageUrl: imageUrl,
           timestamp: timestamp,
+          isRead: false,
         );
 
         List<String> ids = [currentUserId, receiverId];
@@ -80,6 +84,8 @@ class ChatService with ChangeNotifier {
         String chatRoomId = ids.join("_");
 
         await _firestore.collection('chat_rooms').doc(chatRoomId).collection('messages').add(newMessage.toMap());
+
+
       }
     }
   }
@@ -104,9 +110,10 @@ class ChatService with ChangeNotifier {
           senderId: currentUserId,
           senderEmail: currentUserEmail,
           receiverId: receiverId,
-          message: '', // Assuming the message is empty when sending a video
+          message: '',
           videoUrl: videoUrl,
           timestamp: timestamp,
+          isRead: false,
         );
 
         List<String> ids = [currentUserId, receiverId];
@@ -114,51 +121,50 @@ class ChatService with ChangeNotifier {
         String chatRoomId = ids.join("_");
 
         await _firestore.collection('chat_rooms').doc(chatRoomId).collection('messages').add(newMessage.toMap());
+
       }
     }
   }
 
-  UploadTask _uploadImageToFirebase(File file) {
-    final ref = _firebaseStorage.ref().child('chat_images').child('${DateTime.now().millisecondsSinceEpoch}.jpg');
-    return ref.putFile(file);
+
+
+  Future<void> resetUnreadMessages(String receiverId, String currentUserId) async {
+    List<String> ids = [currentUserId, receiverId];
+    ids.sort();
+    String chatRoomId = ids.join("_");
+
+    final messages = await FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatRoomId)
+        .collection('messages')
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    for (var doc in messages.docs) {
+      doc.reference.update({'isRead': true});
+    }
   }
 
-  UploadTask _uploadVideoToFirebase(File file) {
-    final ref = _firebaseStorage.ref().child('chat_videos').child('${DateTime.now().millisecondsSinceEpoch}.mp4');
-    return ref.putFile(file);
-  }
 
-  Future<void> deleteMessage(String receiverId, String messageId) async {
-    List<String> ids = [_firebaseAuth.currentUser!.uid, receiverId];
+
+  Future<void> deleteMessage(String messageId, String userId, String otherUserId) async {
+    List<String> ids = [userId, otherUserId];
     ids.sort();
     String chatRoomId = ids.join("_");
 
     await _firestore.collection('chat_rooms').doc(chatRoomId).collection('messages').doc(messageId).delete();
   }
 
-  // Add this function to your ChatService class
-  Future<void> scheduleMessage(String receiverId, String message, DateTime scheduledTime) async {
-    final String currentUserId = _firebaseAuth.currentUser!.uid;
-    final String currentUserEmail = _firebaseAuth.currentUser!.email.toString();
-    final Timestamp timestamp = Timestamp.fromDate(scheduledTime);
 
-    Message newMessage = Message(
-      senderId: currentUserId,
-      senderEmail: currentUserEmail,
-      receiverId: receiverId,
-      message: message,
-      timestamp: timestamp,
-    );
 
-    List<String> ids = [currentUserId, receiverId];
-    ids.sort();
-    String chatRoomId = ids.join("_");
-
-    await _firestore.collection('chat_rooms').doc(chatRoomId).collection('messages').add(newMessage.toMap());
+  UploadTask _uploadImageToFirebase(File imageFile) {
+    final Reference storageReference = _firebaseStorage.ref().child('images/${DateTime.now().millisecondsSinceEpoch}.jpg');
+    return storageReference.putFile(imageFile);
   }
 
-
-
-
-
+  UploadTask _uploadVideoToFirebase(File videoFile) {
+    final Reference storageReference = _firebaseStorage.ref().child('videos/${DateTime.now().millisecondsSinceEpoch}.mp4');
+    return storageReference.putFile(videoFile);
+  }
 }

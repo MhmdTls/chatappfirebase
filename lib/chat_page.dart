@@ -6,13 +6,10 @@ import 'package:chatappfirbase/text_field.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/scheduler.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:intl/intl.dart';
 import 'package:flutter_datetime_picker_bdaya/flutter_datetime_picker_bdaya.dart';
 import 'package:translator/translator.dart';
-import 'package:timezone/timezone.dart' as tz;
-import 'main.dart';
+
 
 class ChatPage extends StatefulWidget {
   final String receiverUserEmail;
@@ -41,29 +38,27 @@ class _ChatPageState extends State<ChatPage> {
   double _uploadProgress = 0;
 
 
+
   void _scheduleMessage() {
     if (_messageController.text.isNotEmpty) {
       DatePickerBdaya.showDateTimePicker(
         context,
         showTitleActions: true,
         onConfirm: (dateTime) {
-          // Store the scheduled date and time
-          DateTime scheduledTime = dateTime;
-          _scheduleNotification(scheduledTime, _messageController.text);
 
-          // Calculate the delay until scheduled time
+          DateTime scheduledTime = dateTime;
+
+
           Duration delay = scheduledTime.difference(DateTime.now());
 
-          // Schedule sending the message at the specified time
-          SchedulerBinding.instance!.addPostFrameCallback((_) {
-            Timer(delay, () async {
-              await _chatService.sendMessage(widget.receiverUserID, _messageController.text);
-              _messageController.clear();
-              _scrollToBottom();
-            });
+
+          Timer(delay, () async {
+            await _chatService.sendMessage(widget.receiverUserID, _messageController.text);
+            _messageController.clear();
+            _scrollToBottom();
           });
 
-          // Optionally, you can notify the user that the message is scheduled
+
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text('Message scheduled for ${DateFormat('yyyy-MM-dd HH:mm').format(scheduledTime)}'),
@@ -75,44 +70,12 @@ class _ChatPageState extends State<ChatPage> {
     }
   }
 
-  Future<void> _sendNotification(String message) async {
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'New Message',
-      message,
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'your_channel_id',
-          'your_channel_name',
-
-          importance: Importance.high,
-         // Make sure to import the correct enum for priority
-        ),
-      ),
-    );
-  }
 
 
 
 
 
-  Future<void> _scheduleNotification(DateTime scheduledTime, String message) async {
-    await flutterLocalNotificationsPlugin.zonedSchedule(
-      0,
-      'Scheduled Message',
-      message,
-      tz.TZDateTime.from(scheduledTime, tz.local),
-      const NotificationDetails(
-        android: AndroidNotificationDetails(
-          'your channel id',
-          'your channel name',
-        ),
-      ),
-      androidAllowWhileIdle: true,
-      uiLocalNotificationDateInterpretation: UILocalNotificationDateInterpretation.absoluteTime,
-      payload: message,
-    );
-  }
+
 
 
   void sendMessage() async {
@@ -137,7 +100,7 @@ class _ChatPageState extends State<ChatPage> {
     });
 
     await _chatService.sendImage(widget.receiverUserID);
-    await _sendNotification('You have received a new image'); // Notify the receiver
+     // Notify the receiver
 
     setState(() {
       _isUploading = false;
@@ -170,14 +133,16 @@ class _ChatPageState extends State<ChatPage> {
 
 
   void deleteSelectedMessages() async {
+    final String currentUserId = _firebaseAuth.currentUser!.uid;
     for (var messageId in _selectedMessages) {
-      await _chatService.deleteMessage(widget.receiverUserID, messageId);
+      await _chatService.deleteMessage(messageId, currentUserId, widget.receiverUserID);
     }
     setState(() {
       _selectedMessages.clear();
       _isSelectionMode = false;
     });
   }
+
 
   void _toggleSelection(String messageId) {
     setState(() {
@@ -392,12 +357,12 @@ class _ChatPageState extends State<ChatPage> {
         children: [
           IconButton(
             icon: const Icon(Icons.image, size: 33,),
-            color: btnColor, // Set your desired color
+            color: btnColor,
             onPressed: sendImage,
           ),
           IconButton(
             icon: const Icon(Icons.slow_motion_video, size: 33,),
-            color: btnColor, // Set your desired color
+            color: btnColor,
             onPressed: sendVideo,
           ),
           Expanded(
@@ -409,12 +374,12 @@ class _ChatPageState extends State<ChatPage> {
           ),
           IconButton(
             icon: const Icon(Icons.send, size: 33,),
-            color: btnColor, // Set your desired color
+            color: btnColor,
             onPressed: sendMessage,
           ),
           IconButton(
             icon: const Icon(Icons.schedule, size: 33,),
-            color: btnColor, // Set your desired color
+            color: btnColor,
             onPressed: _scheduleMessage,
           ),
         ],

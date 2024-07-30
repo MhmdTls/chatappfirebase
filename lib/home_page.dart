@@ -4,6 +4,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'chat_page.dart';
+import 'chat_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -14,6 +15,7 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final ChatService _chatService = ChatService();
   String searchQuery = '';
   TextEditingController searchController = TextEditingController();
   bool isSearching = false;
@@ -59,7 +61,7 @@ class _HomePageState extends State<HomePage> {
           onChanged: updateSearchQuery,
         )
             : Text('QuickChat'),
-        backgroundColor: const Color(0xFF182E4C), // Dark blue color
+        backgroundColor: const Color(0xFF182E4C),
         actions: [
           isSearching
               ? IconButton(
@@ -114,25 +116,64 @@ class _HomePageState extends State<HomePage> {
   Widget _buildUserListItem(DocumentSnapshot document) {
     Map<String, dynamic> data = document.data()! as Map<String, dynamic>;
     if (_auth.currentUser!.email != data['email']) {
-      return ListTile(
-        title: Text(
-          data['email'],
-          style: TextStyle(color: Colors.white), // Change text color to white
-        ),
-        onTap: () {
-          Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (context) => ChatPage(
-                receiverUserEmail: data['email'],
-                receiverUserID: data['uid'],
-              ),
+      return FutureBuilder<int>(
+        future: _getUnreadMessageCount(data['uid']),
+        builder: (context, snapshot) {
+          int unreadCount = snapshot.data ?? 0;
+          return ListTile(
+            title: Text(
+              data['email'],
+              style: TextStyle(color: Colors.white),
             ),
+            trailing: unreadCount > 0
+                ? CircleAvatar(
+              radius: 10,
+              backgroundColor: Colors.blue,
+              child: Text(
+                unreadCount.toString(),
+                style: TextStyle(color: Colors.white, fontSize: 12),
+              ),
+            )
+                : null,
+            onTap: () async {
+              // Reset unread messages count
+              await _chatService.resetUnreadMessages(data['uid'], _auth.currentUser!.uid);
+
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => ChatPage(
+                    receiverUserEmail: data['email'],
+                    receiverUserID: data['uid'],
+                  ),
+                ),
+              );
+              setState(() {});
+              },
           );
         },
       );
     } else {
       return Container();
     }
+  }
+
+
+  Future<int> _getUnreadMessageCount(String receiverId) async {
+    final String currentUserId = _auth.currentUser!.uid;
+
+    List<String> ids = [currentUserId, receiverId];
+    ids.sort();
+    String chatRoomId = ids.join("_");
+
+    final unreadMessages = await FirebaseFirestore.instance
+        .collection('chat_rooms')
+        .doc(chatRoomId)
+        .collection('messages')
+        .where('receiverId', isEqualTo: currentUserId)
+        .where('isRead', isEqualTo: false)
+        .get();
+
+    return unreadMessages.size;
   }
 }
