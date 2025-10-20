@@ -1,6 +1,6 @@
 # chatappfirbase
 
-A new Flutter project.
+QuickChat is a real-time Flutter + Firebase chat app with auth, instant messages, built-in message translation, scheduled messages (runs in background), and support for images & videos — simple, fast, and easy to extend.
 
 ## Getting Started
 
